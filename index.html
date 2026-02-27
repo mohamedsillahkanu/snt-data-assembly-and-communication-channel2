@@ -569,9 +569,9 @@ input, select, textarea { font-family: var(--font-body); }
 // ================================================================
 //  ⚠️  REPLACE WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
 // ================================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwZI9TZ1p0w107PNqi3y0quFTi5aJjrUDr7kJ07VvNiXG2i40mX_wn5ouhrWV0jFtHV/exec';
+const GAS_URL = 'YOUR_GAS_WEB_APP_URL_HERE';
 
-const ADMIN = { username:'admin', password:'admin', name:'Administrator', role:'admin' };
+const ADMIN = { username:'admin', password:'admin2', name:'Administrator', role:'admin' };
 
 // ── State ────────────────────────────────────────────────────────
 let me = null, allFiles = [], activeFilter = 'all', sortMode = 'newest', searchQ = '';
@@ -636,7 +636,7 @@ async function doSignUp(e) {
   if (pw!==cf)               { showMsg('signupErr','Passwords do not match.'); return; }
   load('Creating account…');
   try {
-    const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch(GAS_URL,{method:'POST',headers:{},
       body:JSON.stringify({action:'createUser',username:user,email,password:pw,name:first+' '+last,role})});
     const d=await r.json();
     if (d.success) { showMsg('signupOk','✅ Account created! You can now sign in.'); setTimeout(()=>switchTab('in'),2200); }
@@ -807,7 +807,7 @@ async function saveFile() {
   let fileUrl='',fileName='',fileType='',driveFileId='';
   if (_file) {
     try {
-      const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      const r=await fetch(GAS_URL,{method:'POST',headers:{},
         body:JSON.stringify({action:'uploadFile',base64Data:_file.base64,fileName:_file.name,mimeType:_file.mime})});
       const d=await r.json();
       if (d.success) { fileUrl=d.viewUrl; fileName=_file.name; driveFileId=d.driveFileId; fileType=detectType(_file.name); }
@@ -834,7 +834,7 @@ async function saveFile() {
     createdAt:ex?ex.createdAt:now,
   };
   try {
-    await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    await fetch(GAS_URL,{method:'POST',headers:{},
       body:JSON.stringify({action:'saveFile',file})});
   } catch {}
   allFiles=editingId?allFiles.map(f=>f.id===editingId?file:f):[file,...allFiles];
@@ -875,7 +875,7 @@ function delFromPrev()   { if(prevId){closePrev();askDelete(prevId);} }
 function closeDelModal() { document.getElementById('delOverlay').classList.remove('open'); deleteId=null; }
 async function confirmDelete() {
   if(!deleteId) return; load('Deleting…');
-  try { await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'deleteFile',fileId:deleteId})}); } catch {}
+  try { await fetch(GAS_URL,{method:'POST',headers:{},body:JSON.stringify({action:'deleteFile',fileId:deleteId})}); } catch {}
   allFiles=allFiles.filter(f=>f.id!==deleteId);
   saveLocal(); closeDelModal(); renderAll(); toast('File deleted.','info'); unload();
 }
