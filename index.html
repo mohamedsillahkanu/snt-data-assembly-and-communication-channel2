@@ -629,7 +629,7 @@
             <option value="report">Reports</option>
             <option value="meeting">Meetings</option>
             <option value="email">Email</option>
-            <option value="nextstep">Next Steps</option>
+            <option value="nextstep">Assign Tasks</option>
           </select>
         </div>
         <div class="form-group"><label id="dateLabel">Date *</label><input type="date" id="itemDate"></div>
@@ -683,6 +683,10 @@
               <option value="completed">Completed</option>
             </select>
           </div>
+        </div>
+        <div class="form-group">
+          <label>Organisation</label>
+          <input type="text" id="itemOrganisation" placeholder="e.g. DPPI, NMCP, CHAI, WHO">
         </div>
         <div class="form-group">
           <label>Assign To</label>
@@ -1030,7 +1034,7 @@ report,Reports,fileText,false,Reports and documents,rp-quarterly,Quarterly Repor
 report,Reports,fileText,false,Reports and documents,rp-annual,Annual Reports
 meeting,Meetings,meeting,true,Meeting minutes,,
 email,Email,email,true,Email communications,,
-nextstep,Next Steps,nextstep,true,Action items and tasks,,`;
+nextstep,Assign Tasks,nextstep,true,Action items and tasks,,`;
 
 function buildSectionsFromCSV(csv){
   const lines=csv.trim().split('\n');
@@ -1485,7 +1489,99 @@ function renderItems(){
       grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">${svgIcon('folder',28)}</div><h3>No items yet</h3><p>Click Add to create the first item</p><button class="btn btn-gold" onclick="openAddModal()" style="margin-top:10px;">Add Item</button></div>`;
     }else{grid.innerHTML='';}return;
   }
-  grid.innerHTML=currentItems.map((item,i)=>buildItemCard(item,i,currentItems)).join('');
+  if(sectionId==='nextstep'||currentItems.every(i=>i.section==='nextstep')){
+    renderTaskTable(grid);
+  } else {
+    grid.innerHTML=currentItems.map((item,i)=>buildItemCard(item,i,currentItems)).join('');
+  }
+}
+
+function renderTaskTable(grid){
+  const statusColors={pending:'#fff3cd',['in-progress']:'#cce5ff',completed:'#d4edda',overdue:'#f8d7da'};
+  const statusText={pending:'#856404',['in-progress']:'#004085',completed:'#155724',overdue:'#721c24'};
+  const canComplete=userRole==='supervisor'||userRole==='admin';
+  const canEdit=userRole!=='user';
+  const canDelete=userRole==='admin';
+  const now=new Date();
+
+  // summary counts
+  const counts={pending:0,'in-progress':0,completed:0,overdue:0};
+  currentItems.forEach(item=>{const s=getStatusClass(item);if(s)counts[s]=(counts[s]||0)+1;});
+
+  let html=`
+  <div style="grid-column:1/-1;">
+    <!-- Summary pills -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="background:#fff3cd;color:#856404;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:700;border:1px solid #f0d060;">⏳ Pending: ${counts.pending||0}</div>
+      <div style="background:#cce5ff;color:#004085;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:700;border:1px solid #9ccfee;">🔵 In Progress: ${counts['in-progress']||0}</div>
+      <div style="background:#d4edda;color:#155724;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:700;border:1px solid #9fccaa;">✅ Completed: ${counts.completed||0}</div>
+      <div style="background:#f8d7da;color:#721c24;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:700;border:1px solid #f1aab0;">🔴 Overdue: ${counts.overdue||0}</div>
+    </div>
+    <!-- Table -->
+    <div style="overflow-x:auto;border-radius:10px;box-shadow:0 2px 16px rgba(0,64,128,.12);border:1.5px solid #d0e4ff;">
+      <table style="width:100%;border-collapse:collapse;font-size:.88rem;background:#fff;">
+        <thead>
+          <tr style="background:var(--primary);color:#fff;">
+            <th style="padding:12px 14px;text-align:left;font-family:'Oswald',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;">#</th>
+            <th style="padding:12px 14px;text-align:left;font-family:'Oswald',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Task</th>
+            <th style="padding:12px 14px;text-align:left;font-family:'Oswald',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;">Organisation</th>
+            <th style="padding:12px 14px;text-align:left;font-family:'Oswald',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;">Assigned To</th>
+            <th style="padding:12px 14px;text-align:left;font-family:'Oswald',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;">Deadline</th>
+            <th style="padding:12px 14px;text-align:center;font-family:'Oswald',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;">Status</th>
+            <th style="padding:12px 14px;text-align:center;font-family:'Oswald',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;">Comments</th>
+            <th style="padding:12px 14px;text-align:center;font-family:'Oswald',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+  currentItems.forEach((item,i)=>{
+    const statusClass=getStatusClass(item);
+    const isOverdue=statusClass==='overdue';
+    const isCompleted=item.status==='completed';
+    const dueDate=item.dueDate?new Date(item.dueDate):null;
+    const dueFmt=dueDate?dueDate.toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'}):'—';
+    const duePast=dueDate&&dueDate<now&&!isCompleted;
+    const commentCount=(item.comments||[]).length;
+    const rowBg=i%2===0?'#fff':'#f7f9fc';
+    const statusBg=statusColors[statusClass]||'#f0f0f0';
+    const statusClr=statusText[statusClass]||'#333';
+
+    html+=`<tr style="background:${rowBg};border-bottom:1px solid #e8eef8;transition:background .15s;" onmouseover="this.style.background='#e8f0fb'" onmouseout="this.style.background='${rowBg}'">
+      <td style="padding:11px 14px;color:var(--gray-400);font-size:.8rem;font-weight:600;">${i+1}</td>
+      <td style="padding:11px 14px;max-width:280px;">
+        <div style="font-weight:700;color:var(--gray-800);margin-bottom:2px;${isCompleted?'text-decoration:line-through;color:var(--gray-400);':''}line-height:1.4;">${escHtml(item.title)}</div>
+        ${item.description?`<div style="font-size:.75rem;color:var(--gray-600);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${stripHtml(item.description).slice(0,100)}${stripHtml(item.description).length>100?'…':''}</div>`:''}
+      </td>
+      <td style="padding:11px 14px;white-space:nowrap;">
+        <span style="background:#e8f0fe;color:#004080;padding:3px 9px;border-radius:4px;font-size:.78rem;font-weight:600;">${escHtml(item.organisation||'—')}</span>
+      </td>
+      <td style="padding:11px 14px;white-space:nowrap;">
+        ${item.assignee?`<div style="display:flex;align-items:center;gap:6px;"><div style="width:26px;height:26px;border-radius:50%;background:${chatColor(item.assignee)};color:#fff;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${chatInitials(item.assignee)}</div><div><div style="font-size:.82rem;font-weight:600;color:var(--gray-800);">${escHtml(item.assignee)}</div>${item.assigneeEmail?`<div style="font-size:.7rem;color:var(--gray-400);">${escHtml(item.assigneeEmail)}</div>`:''}</div></div>`:'<span style="color:var(--gray-400);font-size:.8rem;">Unassigned</span>'}
+      </td>
+      <td style="padding:11px 14px;white-space:nowrap;">
+        <span style="font-weight:600;font-size:.82rem;color:${duePast?'var(--danger)':'var(--gray-700)'};">${dueFmt}</span>
+        ${duePast?`<div style="font-size:.7rem;color:var(--danger);font-weight:600;">Overdue</div>`:''}
+      </td>
+      <td style="padding:11px 14px;text-align:center;">
+        <span style="background:${statusBg};color:${statusClr};padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:700;white-space:nowrap;">${getStatusLabel(item)}</span>
+      </td>
+      <td style="padding:11px 14px;text-align:center;">
+        ${commentCount>0?`<button onclick="openPreviewById('${item.id}',true)" style="background:#e0e7ff;color:var(--primary);border:none;border-radius:10px;padding:3px 10px;font-size:.75rem;font-weight:700;cursor:pointer;">💬 ${commentCount}</button>`:`<span style="color:var(--gray-300);font-size:.8rem;">—</span>`}
+      </td>
+      <td style="padding:11px 14px;text-align:center;">
+        <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
+          <button onclick="openPreviewById('${item.id}',false)" style="background:var(--primary);color:#fff;border:none;border-radius:5px;padding:5px 9px;font-size:.72rem;font-weight:600;cursor:pointer;">View</button>
+          ${canComplete&&!isCompleted?`<button onclick="openCompleteModalById('${item.id}')" style="background:var(--success);color:#fff;border:none;border-radius:5px;padding:5px 9px;font-size:.72rem;font-weight:600;cursor:pointer;">Done</button>`:''}
+          ${canEdit?`<button onclick="openEditModalById('${item.id}')" style="background:var(--info);color:#fff;border:none;border-radius:5px;padding:5px 9px;font-size:.72rem;font-weight:600;cursor:pointer;">Edit</button>`:''}
+          ${canDelete?`<button onclick="openDeleteModalById('${item.id}')" style="background:var(--danger);color:#fff;border:none;border-radius:5px;padding:5px 7px;font-size:.72rem;cursor:pointer;">🗑</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  });
+
+  html+=`</tbody></table></div></div>`;
+  grid.innerHTML=html;
+  grid.style.display='grid';
 }
 
 function buildItemCard(item,i,itemsArray){
@@ -1585,6 +1681,7 @@ function openAddModal(){
   document.getElementById('itemDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('itemDueDate').value='';document.getElementById('itemStatus').value='pending';
   document.getElementById('itemAssignee').value='';document.getElementById('itemAssigneeEmail').value='';
+  const orgEl=document.getElementById('itemOrganisation');if(orgEl)orgEl.value='';
   document.getElementById('itemDescription').innerHTML='';document.getElementById('itemFileUrl').value='';document.getElementById('itemFileType').value='';
   clearFileSelection();showUploadTab('upload');folderSelectionLevel=0;selectedSubsection=null;selectedFolderType=null;
   ['selectedFolderPath','selectedFolderType','selectedSubsection','selectedSubfolderType'].forEach(id=>document.getElementById(id).value='');
@@ -1597,6 +1694,7 @@ function openEditModalForItem(item){
   document.getElementById('itemTitle').value=item.title||'';document.getElementById('itemMainSection').value=item.section;
   document.getElementById('itemDate').value=item.date||'';document.getElementById('itemDueDate').value=item.dueDate||'';
   document.getElementById('itemStatus').value=item.status||'pending';
+  document.getElementById('itemOrganisation').value=item.organisation||'';
   document.getElementById('itemAssignee').value=item.assignee||'';
   document.getElementById('itemAssigneeEmail').value=item.assigneeEmail||'';
   document.getElementById('itemDescription').innerHTML=item.description||'';
@@ -1641,6 +1739,7 @@ function saveItem(){
   const subfolderType=!isFlat(sectionId)?document.getElementById('selectedFolderType').value:null;
   const itemData={id:editingItem?.id||'item-'+Date.now(),title,section:sectionId,subsection:subsectionId,subsectionName,subfolderType,date,
     dueDate:sectionId==='nextstep'?document.getElementById('itemDueDate').value:null,status:sectionId==='nextstep'?document.getElementById('itemStatus').value:null,
+    organisation:sectionId==='nextstep'?(document.getElementById('itemOrganisation').value.trim()||null):null,
     assignee:sectionId==='nextstep'?document.getElementById('itemAssignee').value.trim():null,assigneeEmail:sectionId==='nextstep'?document.getElementById('itemAssigneeEmail').value.trim():null,
     description:document.getElementById('itemDescription').innerHTML,fileUrl:fileUrl||editingItem?.fileUrl||null,fileName,fileType:fileType||editingItem?.fileType||null,
     comments:editingItem?.comments||[],createdBy:editingItem?.createdBy||currentUser,createdAt:editingItem?.createdAt||new Date().toISOString()};
