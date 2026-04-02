@@ -1097,6 +1097,7 @@ async function handleSignUp(e){
     if(check.exists){showErr('That email is already registered.');btn.disabled=false;btn.textContent='Create Account';return;}
     // Fire-and-forget append — only adds one row, never touches existing users
     postToScript({action:'appendUser',user:{username,password,name,role:'user'}});
+    postToScript({action:'newUserJoined',name,username});
     ['suName','suUsername','suPassword','suConfirm'].forEach(id=>document.getElementById(id).value='');
     okEl.style.display='block';okEl.classList.add('show');
     setTimeout(()=>{okEl.classList.remove('show');okEl.style.display='none';switchAuthTab('signin');},1800);
