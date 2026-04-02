@@ -351,26 +351,31 @@
     .chat-rxn-btn.mine{background:#e0edff;border-color:var(--primary);color:var(--primary);font-weight:700;}
 
     /* action bar on hover */
-    /* ⋯ menu — always visible on the bubble */
-    .chat-act-bar{display:none;} /* hide old hover bar */
-    .chat-menu-wrap{position:relative;display:inline-flex;align-items:center;margin-top:3px;}
-    .chat-menu-btn{background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.1rem;padding:2px 5px;border-radius:5px;line-height:1;transition:color .15s;}
+    /* ── Hover action bar (WhatsApp-style pill) ── */
+    .chat-act-bar{opacity:0;visibility:hidden;display:flex;align-items:center;gap:1px;background:#fff;border:1px solid var(--gray-200);border-radius:22px;padding:4px 6px;box-shadow:0 3px 16px rgba(0,0,0,.16);position:absolute;right:0;top:-44px;z-index:15;white-space:nowrap;transition:opacity .18s ease .28s,visibility 0s ease .28s;}
+    .chat-msg-wrap.mine .chat-act-bar{right:auto;left:0;}
+    .chat-bwrap:hover .chat-act-bar{opacity:1;visibility:visible;transition:opacity .18s ease .28s,visibility 0s;}
+    .chat-act-btn{background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:14px;font-size:1rem;line-height:1;transition:background .13s,transform .13s;display:flex;align-items:center;}
+    .chat-act-btn:hover{background:var(--gray-100);transform:scale(1.18);}
+    .chat-act-sep-v{width:1px;height:18px;background:var(--gray-200);margin:0 3px;flex-shrink:0;}
+    .chat-act-reply{font-size:.78rem;color:var(--gray-600);padding:5px 9px;border-radius:14px;font-weight:600;gap:4px;transform:none!important;}
+    .chat-act-reply:hover{background:var(--gray-100);color:var(--primary);}
+    /* ⋯ edit/delete dropdown */
+    .chat-menu-wrap{position:relative;display:inline-flex;align-items:center;}
+    .chat-menu-btn{background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1.1rem;padding:3px 6px;border-radius:5px;line-height:1;transition:color .13s;}
     .chat-menu-btn:hover{color:var(--primary);}
-    .chat-dropdown{position:absolute;background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:50;min-width:150px;overflow:hidden;display:none;bottom:calc(100% + 4px);left:0;}
+    .chat-dropdown{position:absolute;background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:50;min-width:130px;overflow:hidden;display:none;bottom:calc(100% + 4px);left:0;}
     .chat-msg-wrap.mine .chat-dropdown{left:auto;right:0;}
     .chat-dropdown.open{display:block;}
-    .chat-dropdown-item{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:.83rem;cursor:pointer;color:var(--gray-700);transition:background .15s;white-space:nowrap;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+    .chat-dropdown-item{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:.83rem;cursor:pointer;color:var(--gray-700);transition:background .13s;white-space:nowrap;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
     .chat-dropdown-item:hover{background:#f0f5ff;color:var(--primary);}
     .chat-dropdown-item.danger{color:var(--danger);}
     .chat-dropdown-item.danger:hover{background:#fee2e2;}
-    .chat-dropdown-sep{height:1px;background:var(--gray-100);margin:3px 0;}
-    /* reactions always visible below bubble */
+    /* reactions row */
     .chat-rxns{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
     .chat-rxn-btn{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:2px 8px;font-size:.8rem;cursor:pointer;transition:all .25s ease;display:flex;align-items:center;gap:3px;color:var(--gray-700);}
     .chat-rxn-btn:hover{border-color:var(--primary);background:#f0f5ff;transform:scale(1.07);}
     .chat-rxn-btn.mine{background:#e0edff;border-color:var(--primary);color:var(--primary);font-weight:700;}
-    .chat-rxn-add{background:none;border:1px solid var(--gray-200);border-radius:10px;padding:2px 7px;font-size:.8rem;cursor:pointer;color:var(--gray-400);transition:all .25s;}
-    .chat-rxn-add:hover{border-color:var(--primary);color:var(--primary);background:#f0f5ff;}
     /* image in chat */
     .chat-img{max-width:220px;max-height:200px;border-radius:10px;display:block;cursor:pointer;margin-top:4px;object-fit:cover;}
     .chat-img-btn{width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;background:var(--gray-100);color:var(--gray-600);font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
@@ -1517,11 +1522,27 @@ function renderComments(){
   <div class="add-comment-box"><div class="comment-editor" id="newCommentText" contenteditable="true" placeholder="Write a comment..."></div><button class="btn btn-purple" onclick="addComment()" style="padding:10px 14px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>`;
   document.getElementById('commentsSection').innerHTML=`<div class="comments-section">${html}</div>`;
 }
-function addComment(){const textEl=document.getElementById('newCommentText');const text=textEl?.innerHTML.trim();if(!text||text==='<br>')return;if(!previewItem)return;if(!previewItem.comments)previewItem.comments=[];previewItem.comments.push({id:'c-'+Date.now(),author:currentUser,role:userRole,text,time:new Date().toISOString(),replies:[]});updateCommentsInSections();saveToStorage();if(textEl)textEl.innerHTML='';renderComments();renderItems();showNotification('Comment added!','success');}
+function addComment(){
+  const textEl=document.getElementById('newCommentText');const text=textEl?.innerHTML.trim();
+  if(!text||text==='<br>')return;if(!previewItem)return;
+  if(!previewItem.comments)previewItem.comments=[];
+  previewItem.comments.push({id:'c-'+Date.now(),author:currentUser,role:userRole,text,time:new Date().toISOString(),replies:[]});
+  updateCommentsInSections();saveToStorage();if(textEl)textEl.innerHTML='';renderComments();renderItems();
+  showNotification('Comment added!','success');
+  sendNotificationToAll('newComment',{itemTitle:previewItem.title,commenter:currentUser,commentText:stripHtml(text).slice(0,200),itemSection:sections.find(s=>s.id===previewItem.section)?.name||previewItem.section});
+}
 function updateCommentsInSections(){sections.forEach(s=>{if(s.items){const item=s.items.find(i=>i.id===previewItem.id);if(item)item.comments=previewItem.comments;}});}
 function startReply(ci){replyingTo=ci;document.getElementById('replyBox').style.display='block';document.getElementById('replyText').focus();}
 function cancelReply(){replyingTo=null;const rb=document.getElementById('replyBox');if(rb)rb.style.display='none';const rt=document.getElementById('replyText');if(rt)rt.innerHTML='';}
-function submitReply(){const textEl=document.getElementById('replyText');const text=textEl?.innerHTML.trim();if(!text||text==='<br>')return;if(replyingTo===null||!previewItem)return;if(!previewItem.comments[replyingTo].replies)previewItem.comments[replyingTo].replies=[];previewItem.comments[replyingTo].replies.push({author:currentUser,role:userRole,text,time:new Date().toISOString()});updateCommentsInSections();saveToStorage();cancelReply();renderComments();showNotification('Reply added!','success');}
+function submitReply(){
+  const textEl=document.getElementById('replyText');const text=textEl?.innerHTML.trim();
+  if(!text||text==='<br>')return;if(replyingTo===null||!previewItem)return;
+  if(!previewItem.comments[replyingTo].replies)previewItem.comments[replyingTo].replies=[];
+  previewItem.comments[replyingTo].replies.push({author:currentUser,role:userRole,text,time:new Date().toISOString()});
+  updateCommentsInSections();saveToStorage();cancelReply();renderComments();
+  showNotification('Reply added!','success');
+  sendNotificationToAll('newReply',{itemTitle:previewItem.title,replier:currentUser,replyText:stripHtml(text).slice(0,200)});
+}
 let editingCommentIdx=null,editingReplyIdx=null;
 function startEditComment(idx){const c=previewItem.comments[idx];if(!c||c.author!==currentUser)return;editingCommentIdx=idx;const el=document.getElementById(`commentText-${idx}`);if(el)el.innerHTML=`<div class="comment-editor" id="editCommentText" contenteditable="true" style="background:white;border:2px solid var(--info);">${c.text}</div><div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-info" onclick="saveEditComment()" style="padding:6px 12px;font-size:.75rem;">Save</button><button class="btn btn-outline" onclick="cancelEditComment()" style="padding:6px 12px;font-size:.75rem;color:#333;border-color:#ccc;">Cancel</button></div>`;}
 function saveEditComment(){if(editingCommentIdx===null||!previewItem)return;const newText=document.getElementById('editCommentText')?.innerHTML.trim();if(!newText)return;previewItem.comments[editingCommentIdx].text=newText;previewItem.comments[editingCommentIdx].edited=true;updateCommentsInSections();saveToStorage();editingCommentIdx=null;renderComments();}
@@ -1533,7 +1554,15 @@ function cancelEditReply(){editingCommentIdx=null;editingReplyIdx=null;renderCom
 // ==================== COMPLETE / DELETE ====================
 function openCompleteForItem(item){if(userRole!=='supervisor'&&userRole!=='admin')return;if(!item||item.status==='completed')return;itemToComplete=item;document.getElementById('completeTaskInfo').innerHTML=`<h4 style="font-size:1rem;margin-bottom:6px;">${item.title}</h4><p style="font-size:.85rem;color:var(--gray-600);">${item.dueDate?'Due: '+formatDate(item.dueDate):'No due date'}${item.assignee?' | Assigned: '+item.assignee:''}</p>`;document.getElementById('completionNotes').value='';document.getElementById('completionFileUrl').value='';document.getElementById('completionDate').value=new Date().toISOString().split('T')[0];document.getElementById('completeModal').classList.add('active');}
 function closeCompleteModal(){document.getElementById('completeModal').classList.remove('active');itemToComplete=null;}
-function confirmComplete(){if(!itemToComplete)return;const notes=document.getElementById('completionNotes').value.trim();if(!notes){showNotification('Enter completion notes','error');return;}showLoading('Completing...');sections.forEach(s=>{if(s.items){const item=s.items.find(i=>i.id===itemToComplete.id);if(item){item.status='completed';item.completionNotes=notes;item.completionDate=document.getElementById('completionDate').value;item.completedBy=currentUser;const ev=document.getElementById('completionFileUrl').value.trim();if(ev)item.evidenceUrl=ev;}}});saveToStorage();setTimeout(()=>{hideLoading();closeCompleteModal();renderTabs();loadSection(currentSectionIndex,true);showNotification('Task completed!','success');},400);}
+function confirmComplete(){
+  if(!itemToComplete)return;const notes=document.getElementById('completionNotes').value.trim();
+  if(!notes){showNotification('Enter completion notes','error');return;}
+  showLoading('Completing...');
+  sections.forEach(s=>{if(s.items){const item=s.items.find(i=>i.id===itemToComplete.id);if(item){item.status='completed';item.completionNotes=notes;item.completionDate=document.getElementById('completionDate').value;item.completedBy=currentUser;const ev=document.getElementById('completionFileUrl').value.trim();if(ev)item.evidenceUrl=ev;}}});
+  saveToStorage();
+  sendNotificationToAll('taskCompleted',{taskTitle:itemToComplete.title,completedBy:currentUser,completionNotes:notes.slice(0,200),completionDate:document.getElementById('completionDate').value});
+  setTimeout(()=>{hideLoading();closeCompleteModal();renderTabs();loadSection(currentSectionIndex,true);showNotification('Task completed!','success');},400);
+}
 function closeDeleteModal(){document.getElementById('deleteModal').classList.remove('active');itemToDelete=null;}
 function confirmDelete(){if(!itemToDelete||userRole!=='admin')return;sections.forEach(s=>{if(s.items){const idx=s.items.findIndex(i=>i.id===itemToDelete.id);if(idx!==-1)s.items.splice(idx,1);}});saveToStorage();closeDeleteModal();renderTabs();if(mainFolderLevel===1&&mainSelectedSubsection){loadSection(currentSectionIndex,true);renderMainFolderCards(sections[currentSectionIndex].id);}else{loadSection(currentSectionIndex);}showNotification('Deleted!','success');}
 
@@ -1651,15 +1680,13 @@ function buildChatMsgHtml(msg){
       <div class="chat-av" style="background:${color}" title="${escHtml(msg.author)}">${av}</div>
       <div class="chat-bwrap">
         ${!mine?`<div class="chat-sender-name" style="color:${color};">${escHtml(msg.author)} <span class="chat-rtag ${msg.role||'user'}">${msg.role||'user'}</span></div>`:''}
-        <div style="display:flex;align-items:flex-end;gap:4px;${mine?'flex-direction:row-reverse;':''}">
-          <div class="chat-bubble ${mine?'mine':''}">
-            ${msg.replyPreview?`<div class="chat-rp-preview">↩ <strong>${escHtml(msg.replyAuthor||'')}</strong>: ${escHtml(msg.replyPreview)}</div>`:''}
-            <div id="ctxt-${msg.id}">${msg.text||''}</div>
-            ${imgHtml}
-            <div style="font-size:.65rem;opacity:.65;margin-top:4px;text-align:right;">${ts}${msg.edited?' · edited':''}</div>
-          </div>
-          ${acts}
+        <div class="chat-bubble ${mine?'mine':''}">
+          ${msg.replyPreview?`<div class="chat-rp-preview">↩ <strong>${escHtml(msg.replyAuthor||'')}</strong>: ${escHtml(msg.replyPreview)}</div>`:''}
+          <div id="ctxt-${msg.id}">${msg.text||''}</div>
+          ${imgHtml}
+          <div style="font-size:.65rem;opacity:.65;margin-top:4px;text-align:right;">${ts}${msg.edited?' · edited':''}</div>
         </div>
+        ${acts}
         ${rxns?`<div class="chat-rxns">${rxns}</div>`:''}
       </div>
     </div>
@@ -1678,10 +1705,8 @@ function buildChatRepHtml(parentId,r){
     <div class="chat-av sm" style="background:${color}" title="${escHtml(r.author)}">${av}</div>
     <div class="chat-bwrap">
       <div class="chat-sender-name" style="color:${color};font-size:.75rem;">${escHtml(r.author)}</div>
-      <div style="display:flex;align-items:flex-end;gap:4px;${mine?'flex-direction:row-reverse;':''}">
-        <div class="chat-bubble rep ${mine?'mine':''}" id="ctxt-${r.id}">${r.text||''}${imgHtml}<div style="font-size:.62rem;opacity:.65;margin-top:3px;text-align:right;">${ts}${r.edited?' · edited':''}</div></div>
-        ${acts}
-      </div>
+      <div class="chat-bubble rep ${mine?'mine':''}" id="ctxt-${r.id}">${r.text||''}${imgHtml}<div style="font-size:.62rem;opacity:.65;margin-top:3px;text-align:right;">${ts}${r.edited?' · edited':''}</div></div>
+      ${acts}
       ${rxns?`<div class="chat-rxns">${rxns}</div>`:''}
     </div>
   </div>`;
@@ -1696,28 +1721,17 @@ function buildRxnHtml(rxns,msgId,isRep,repId){
 }
 
 function buildActHtml(id,author,mine,canEdit,canDel,isRep,repId){
-  const menuId='menu-'+id+(repId?'-'+repId:'');
-  const qrItems=QUICK_RXN.map(e=>{
+  const qrBtns=QUICK_RXN.map(e=>{
     const fn=isRep?`toggleRepRxn('${id}','${repId}','${e}')`:`toggleMsgRxn('${id}','${e}')`;
-    return `<button class="chat-dropdown-item" onclick="${fn};closeChatMenu('${menuId}')">${e}</button>`;
+    return `<button class="chat-act-btn" onclick="${fn}" title="${e}">${e}</button>`;
   }).join('');
-  const rpItem=!isRep?`<button class="chat-dropdown-item" onclick="startChatReply('${id}','${escAttr(author)}');closeChatMenu('${menuId}')">↩ Reply</button>`:'';
-  const edItem=canEdit?`<button class="chat-dropdown-item" onclick="${isRep?`startEditRep('${id}','${repId}')`:`startEditMsg('${id}')`};closeChatMenu('${menuId}')">✏️ Edit</button>`:'';
-  const dlItem=canDel?`<div class="chat-dropdown-sep"></div><button class="chat-dropdown-item danger" onclick="${isRep?`delRep('${id}','${repId}')`:`delMsg('${id}')`};closeChatMenu('${menuId}')">🗑️ Delete</button>`:'';
-  return `<div class="chat-menu-wrap">
-    <button class="chat-menu-btn" onclick="toggleChatMenu('${menuId}',event)">⋯</button>
-    <div class="chat-dropdown" id="${menuId}">${rpItem}${edItem}${qrItems}${dlItem}</div>
-  </div>`;
+  const rpBtn=!isRep?`<div class="chat-act-sep-v"></div><button class="chat-act-btn chat-act-reply" onclick="startChatReply('${id}','${escAttr(author)}')" title="Reply">↩ Reply</button>`:'';
+  const edBtn=canEdit?`<div class="chat-act-sep-v"></div><button class="chat-act-btn chat-act-reply" onclick="${isRep?`startEditRep('${id}','${repId}')`:`startEditMsg('${id}')`}" title="Edit">✏️ Edit</button>`:'';
+  const dlBtn=canDel?`<button class="chat-act-btn chat-act-reply" onclick="${isRep?`delRep('${id}','${repId}')`:`delMsg('${id}')`}" title="Delete" style="color:var(--danger);">🗑️</button>`:'';
+  return `<div class="chat-act-bar">${qrBtns}${rpBtn}${edBtn}${dlBtn}</div>`;
 }
-function toggleChatMenu(id,e){
-  e.stopPropagation();
-  const el=document.getElementById(id);if(!el)return;
-  const wasOpen=el.classList.contains('open');
-  document.querySelectorAll('.chat-dropdown.open').forEach(d=>d.classList.remove('open'));
-  if(!wasOpen)el.classList.add('open');
-}
-function closeChatMenu(id){document.getElementById(id)?.classList.remove('open');}
-document.addEventListener('click',()=>document.querySelectorAll('.chat-dropdown.open').forEach(d=>d.classList.remove('open')));
+function toggleChatMenu(){}
+function closeChatMenu(){}
 
 function onChatKeydown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMessage();}}
 
@@ -1731,6 +1745,9 @@ function sendChatMessage(){
     chatMessages.push({id:'msg-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),author:currentUser,role:userRole,text:html,time:new Date().toISOString(),edited:false,reactions:{},replies:[],replyPreview:chatReplyTo?.preview||null,replyAuthor:chatReplyTo?.author||null});
   }
   input.innerHTML='';cancelChatReply();closeEmojiPicker();renderChat();scrollChatToBottom();saveChatToGAS();
+  // Notify all platform users of new chat message
+  const plainText=stripHtml(html).slice(0,200);
+  sendNotificationToAll('newChatMessage',{from:currentUser,role:userRole,message:plainText,hasImage:false});
 }
 
 async function saveChatToGAS(){await postToScript({action:'saveChatMessages',messages:chatMessages});}
@@ -1749,6 +1766,7 @@ function handleChatImageSelect(input){
       chatMessages.push({id:'msg-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),author:currentUser,role:userRole,text:'',imageData,time:new Date().toISOString(),edited:false,reactions:{},replies:[],replyPreview:chatReplyTo?.preview||null,replyAuthor:chatReplyTo?.author||null});
     }
     cancelChatReply();renderChat();scrollChatToBottom();saveChatToGAS();
+    sendNotificationToAll('newChatMessage',{from:currentUser,role:userRole,message:'📷 Sent an image',hasImage:true});
   };
   reader.readAsDataURL(file);
   input.value='';
@@ -1783,8 +1801,24 @@ function saveEditRep(parentId,repId){const val=document.getElementById('cedit-'+
 function delMsg(msgId){if(!confirm('Delete this message?'))return;chatMessages=chatMessages.filter(m=>m.id!==msgId);renderChat();saveChatToGAS();}
 function delRep(parentId,repId){if(!confirm('Delete this reply?'))return;const parent=chatMessages.find(m=>m.id===parentId);if(parent)parent.replies=(parent.replies||[]).filter(r=>r.id!==repId);renderChat();saveChatToGAS();}
 
-function toggleMsgRxn(msgId,emoji){const msg=chatMessages.find(m=>m.id===msgId);if(!msg)return;if(!msg.reactions)msg.reactions={};if(!msg.reactions[emoji])msg.reactions[emoji]=[];const idx=msg.reactions[emoji].indexOf(currentUser);if(idx>=0)msg.reactions[emoji].splice(idx,1);else msg.reactions[emoji].push(currentUser);if(!msg.reactions[emoji].length)delete msg.reactions[emoji];renderChat();saveChatToGAS();}
-function toggleRepRxn(parentId,repId,emoji){const parent=chatMessages.find(m=>m.id===parentId);const rep=parent?.replies?.find(r=>r.id===repId);if(!rep)return;if(!rep.reactions)rep.reactions={};if(!rep.reactions[emoji])rep.reactions[emoji]=[];const idx=rep.reactions[emoji].indexOf(currentUser);if(idx>=0)rep.reactions[emoji].splice(idx,1);else rep.reactions[emoji].push(currentUser);if(!rep.reactions[emoji].length)delete rep.reactions[emoji];renderChat();saveChatToGAS();}
+function toggleMsgRxn(msgId,emoji){
+  const msg=chatMessages.find(m=>m.id===msgId);if(!msg)return;
+  if(!msg.reactions)msg.reactions={};if(!msg.reactions[emoji])msg.reactions[emoji]=[];
+  const idx=msg.reactions[emoji].indexOf(currentUser);
+  if(idx>=0)msg.reactions[emoji].splice(idx,1);
+  else{msg.reactions[emoji].push(currentUser);sendNotificationToAll('newChatMessage',{from:currentUser,role:userRole,message:`Reacted ${emoji} to a message by ${msg.author}`,hasImage:false});}
+  if(!msg.reactions[emoji].length)delete msg.reactions[emoji];
+  renderChat();saveChatToGAS();
+}
+function toggleRepRxn(parentId,repId,emoji){
+  const parent=chatMessages.find(m=>m.id===parentId);const rep=parent?.replies?.find(r=>r.id===repId);if(!rep)return;
+  if(!rep.reactions)rep.reactions={};if(!rep.reactions[emoji])rep.reactions[emoji]=[];
+  const idx=rep.reactions[emoji].indexOf(currentUser);
+  if(idx>=0)rep.reactions[emoji].splice(idx,1);
+  else{rep.reactions[emoji].push(currentUser);sendNotificationToAll('newChatMessage',{from:currentUser,role:userRole,message:`Reacted ${emoji} to a reply by ${rep.author}`,hasImage:false});}
+  if(!rep.reactions[emoji].length)delete rep.reactions[emoji];
+  renderChat();saveChatToGAS();
+}
 
 // ── Emoji Picker ──────────────────────────────────────────
 function toggleEmojiPicker(){emojiPickerOpen=!emojiPickerOpen;document.getElementById('chatEmojiToggle').classList.toggle('on',emojiPickerOpen);const picker=document.getElementById('emojiPicker');if(emojiPickerOpen){renderEmojiPicker();picker.style.display='block';}else{picker.style.display='none';}}
