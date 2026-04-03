@@ -208,7 +208,15 @@
     .rich-editor-content{min-height:130px;padding:12px 14px;font-family:'Source Sans Pro',Arial,sans-serif;font-size:.9rem;line-height:1.7;overflow-y:auto;max-height:360px;background:#fff;outline:none;}
     .rich-editor-content:empty::before{content:attr(placeholder);color:var(--gray-400);pointer-events:none;}
     .rich-editor-content ul,.rich-editor-content ol{margin:4px 0 6px 22px;padding:0;}
-    .rich-editor-content li{margin-bottom:3px;line-height:1.6;}
+    .rich-editor-content ul ul,.rich-editor-content ol ol,.rich-editor-content ul ol,.rich-editor-content ol ul{margin:2px 0 2px 22px;}
+    .rich-editor-content ul ul ul,.rich-editor-content ol ol ol{margin:2px 0 2px 22px;}
+    .rich-editor-content li{margin-bottom:2px;line-height:1.6;}
+    .rich-editor-content ul>li{list-style-type:disc;}
+    .rich-editor-content ul>li>ul>li{list-style-type:circle;}
+    .rich-editor-content ul>li>ul>li>ul>li{list-style-type:square;}
+    .rich-editor-content ol>li{list-style-type:decimal;}
+    .rich-editor-content ol>li>ol>li{list-style-type:lower-alpha;}
+    .rich-editor-content ol>li>ol>li>ol>li{list-style-type:lower-roman;}
     .rich-editor-content blockquote{border-left:3px solid var(--primary);margin:8px 0;padding:6px 12px;background:#f0f5ff;color:var(--gray-600);font-style:italic;border-radius:0 4px 4px 0;}
     .rich-editor-content h1{font-size:1.4rem;font-weight:700;margin:8px 0 4px;}
     .rich-editor-content h2{font-size:1.2rem;font-weight:700;margin:8px 0 4px;}
@@ -218,7 +226,13 @@
     .rich-editor-content table{border-collapse:collapse;width:100%;margin:8px 0;font-size:.88rem;}
     .rich-editor-content td,.rich-editor-content th{border:1px solid var(--gray-300);padding:5px 9px;}
     .rich-editor-content th{background:#e8f0fe;font-weight:700;}
-    /* comment/reply toolbar */
+    /* same rules for comment editor */
+    .comment-editor ul,.comment-editor ol{margin:3px 0 3px 20px;padding:0;}
+    .comment-editor ul ul,.comment-editor ol ol{margin:2px 0 2px 20px;}
+    .comment-editor ul>li{list-style-type:disc;}
+    .comment-editor ul>li>ul>li{list-style-type:circle;}
+    .comment-editor ol>li{list-style-type:decimal;}
+    .comment-editor ol>li>ol>li{list-style-type:lower-alpha;}
     .comment-toolbar{display:flex;gap:2px;padding:5px 8px;background:#f8f9fb;border:1px solid var(--gray-200);border-bottom:none;border-radius:6px 6px 0 0;flex-wrap:wrap;align-items:center;}
     .comment-toolbar button{padding:4px 7px;background:#fff;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;font-size:.78rem;display:inline-flex;align-items:center;color:var(--gray-700);transition:all .13s;height:26px;}
     .comment-toolbar button:hover{background:#e0e7ff;border-color:var(--primary);color:var(--primary);}
@@ -1136,14 +1150,18 @@ async function openTaskModal(item){
   sel.innerHTML = '<option value="">-- Select person --</option>';
   try{
     const users = await fetchUsers();
-    users.forEach(u=>{
-      const name=u.name||u.username, email=u.username;
-      const opt=document.createElement('option');
-      opt.value=JSON.stringify({name,email});
-      opt.textContent=`${name} (${email})`;
-      if(item && item.assignee===name) opt.selected=true;
-      sel.appendChild(opt);
-    });
+    const seen = new Set();
+    users
+      .filter(u => u.role !== 'admin')
+      .forEach(u=>{
+        const name=u.name||u.username, email=u.username;
+        const key=email.toLowerCase();if(seen.has(key))return;seen.add(key);
+        const opt=document.createElement('option');
+        opt.value=JSON.stringify({name,email});
+        opt.textContent=`${name} (${email})`;
+        if(item && item.assignee===name) opt.selected=true;
+        sel.appendChild(opt);
+      });
   }catch(e){}
   document.getElementById('taskModal').style.display='flex';
   setTimeout(()=>document.getElementById('tmTitle').focus(), 100);
@@ -1598,16 +1616,21 @@ async function populateAssigneeDropdown(currentAssignee, currentEmail) {
   sel.innerHTML = '<option value="">-- Select person --</option>';
   try {
     const users = await fetchUsers();
-    users.forEach(u => {
-      const name = u.name || u.username;
-      const email = u.username;
-      const opt = document.createElement('option');
-      opt.value = JSON.stringify({name, email});
-      opt.textContent = `${name} (${email})`;
-      if (currentAssignee && (name === currentAssignee || email === currentEmail)) opt.selected = true;
-      sel.appendChild(opt);
-    });
-    // If editing and value set but not in list, add it
+    const seen = new Set();
+    users
+      .filter(u => u.role !== 'admin') // no admin
+      .forEach(u => {
+        const name = u.name || u.username;
+        const email = u.username;
+        const key = email.toLowerCase();
+        if (seen.has(key)) return; // no duplicates
+        seen.add(key);
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify({name, email});
+        opt.textContent = `${name} (${email})`;
+        if (currentAssignee && (name === currentAssignee || email === currentEmail)) opt.selected = true;
+        sel.appendChild(opt);
+      });
     if (currentAssignee && !users.find(u => (u.name||u.username) === currentAssignee)) {
       const opt = document.createElement('option');
       opt.value = JSON.stringify({name: currentAssignee, email: currentEmail||''});
@@ -1615,10 +1638,7 @@ async function populateAssigneeDropdown(currentAssignee, currentEmail) {
       opt.selected = true;
       sel.appendChild(opt);
     }
-  } catch(e) {
-    // Fallback — keep empty dropdown
-  }
-  // Sync hidden fields
+  } catch(e) {}
   onAssigneeSelect(sel.value);
 }
 
@@ -1638,8 +1658,18 @@ function onAssigneeSelect(val) {
   } catch(e) {}
 }
 function fmt(cmd,val){document.execCommand(cmd,false,val||null);document.getElementById('itemDescription')?.focus();}
-function formatText(cmd){fmt(cmd);}// backward compat
+function formatText(cmd){fmt(cmd);}
 function formatBlock(tag){if(tag)document.execCommand('formatBlock',false,tag);document.getElementById('itemDescription')?.focus();}
+
+// Tab = indent, Shift+Tab = outdent inside any rich editor
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Tab')return;
+  const el=e.target;
+  const isEditor=el.classList.contains('rich-editor-content')||el.classList.contains('comment-editor')||el.id==='tmDescription'||el.id==='completionNotes';
+  if(!isEditor)return;
+  e.preventDefault();
+  document.execCommand(e.shiftKey?'outdent':'indent',false,null);
+},true);
 function setColor(){const c=prompt('Text color (e.g. red, #004080):','#004080');if(c){document.execCommand('foreColor',false,c);document.getElementById('itemDescription')?.focus();}}
 function setHighlight(){document.execCommand('backColor',false,'#fff176');document.getElementById('itemDescription')?.focus();}
 function insertEditorLink(){const url=prompt('Enter URL:','https://');if(url){document.execCommand('createLink',false,url);}document.getElementById('itemDescription')?.focus();}
@@ -1716,7 +1746,8 @@ function renderItems(){
 function renderTaskTable(grid){
   const canComplete=userRole==='supervisor'||userRole==='admin';
   const canEdit=userRole!=='user';
-  const canDelete=userRole==='admin';
+  const canDelete=userRole==='admin'||userRole==='supervisor';
+  const canAssign=userRole==='supervisor'||userRole==='admin';
   const now=new Date();
   const counts={pending:0,'in-progress':0,completed:0,overdue:0};
   currentItems.forEach(item=>{const s=getStatusClass(item);if(s)counts[s]=(counts[s]||0)+1;});
@@ -1809,7 +1840,7 @@ function renderTaskTable(grid){
 
       <!-- Assigned To — inline dropdown -->
       <td style="padding:12px 14px;">
-        <div id="assign-display-${item.id}" onclick="${canEdit?`inlineEditAssign('${item.id}')`:''}" style="cursor:${canEdit?'pointer':'default'};" title="${canEdit?'Click to reassign':''}">
+        <div id="assign-display-${item.id}" onclick="${canAssign?`inlineEditAssign('${item.id}')`:''}" style="cursor:${canAssign?'pointer':'default'};" title="${canAssign?'Click to reassign':''}">
           ${item.assignee
             ?`<div style="display:flex;align-items:center;gap:7px;">
                 <div style="width:28px;height:28px;border-radius:50%;background:${chatColor(item.assignee)};color:#fff;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${chatInitials(item.assignee)}</div>
@@ -1818,7 +1849,7 @@ function renderTaskTable(grid){
                   ${item.assigneeEmail?`<div style="font-size:.68rem;color:var(--gray-400);">${escHtml(item.assigneeEmail)}</div>`:''}
                 </div>
               </div>`
-            :`<span style="color:var(--primary);font-size:.78rem;font-weight:600;border:1.5px dashed var(--primary);padding:4px 9px;border-radius:5px;display:inline-flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Assign</span>`}
+            :`${canAssign?`<span style="color:var(--primary);font-size:.78rem;font-weight:600;border:1.5px dashed var(--primary);padding:4px 9px;border-radius:5px;display:inline-flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Assign</span>`:`<span style="color:var(--gray-400);font-size:.75rem;">Unassigned</span>`}`}
         </div>
         <div id="assign-edit-${item.id}" style="display:none;">
           <select onchange="saveInlineAssign('${item.id}',this.value)" onblur="cancelInlineAssign('${item.id}')"
@@ -1933,14 +1964,18 @@ async function inlineEditAssign(id){
   try{
     const users=await fetchUsers();
     const item=findItemById(id);
-    users.forEach(u=>{
-      const name=u.name||u.username;const email=u.username;
-      const opt=document.createElement('option');
-      opt.value=JSON.stringify({name,email});
-      opt.textContent=`${name} (${email})`;
-      if(item&&item.assignee===name)opt.selected=true;
-      sel.appendChild(opt);
-    });
+    const seen=new Set();
+    users
+      .filter(u=>u.role!=='admin') // no admin
+      .forEach(u=>{
+        const name=u.name||u.username;const email=u.username;
+        const key=email.toLowerCase();if(seen.has(key))return;seen.add(key);
+        const opt=document.createElement('option');
+        opt.value=JSON.stringify({name,email});
+        opt.textContent=`${name} (${email})`;
+        if(item&&item.assignee===name)opt.selected=true;
+        sel.appendChild(opt);
+      });
   }catch(e){}
   sel.focus();
 }
@@ -2680,7 +2715,11 @@ function renderEmojiPicker(){
   const emojis=emojiSearchVal?Object.values(EMOJI_CATS).flat().filter((e,i,a)=>a.indexOf(e)===i).slice(0,64):EMOJI_CATS[cats[emojiCatIdx]]||[];
   const catTabs=cats.map((c,i)=>`<button class="emoji-cat-tab ${i===emojiCatIdx?'active':''}" onclick="setEmojiCat(${i})">${c}</button>`).join('');
   const grid=emojis.map(e=>`<button class="emoji-btn-item" onclick="insertEmoji('${e}')">${e}</button>`).join('');
-  document.getElementById('emojiPicker').innerHTML=`<div class="emoji-cat-tabs">${catTabs}</div><div class="emoji-search-row"><input type="text" placeholder="Search..." value="${escHtml(emojiSearchVal)}" oninput="emojiSearchVal=this.value;renderEmojiPicker()" autocomplete="off"></div><div class="emoji-grid">${grid||'<div style="padding:12px;font-size:.8rem;color:var(--gray-400);text-align:center;grid-column:1/-1;">No results</div>'}</div>`;
+  const searchInput=document.createElement('input');searchInput.type='text';searchInput.placeholder='Search...';searchInput.value=emojiSearchVal;searchInput.autocomplete='off';searchInput.style.cssText='width:100%;padding:5px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:.82rem;outline:none;';searchInput.oninput=function(){emojiSearchVal=this.value;renderEmojiPicker();};
+  const searchRow=document.createElement('div');searchRow.className='emoji-search-row';searchRow.appendChild(searchInput);
+  const picker=document.getElementById('emojiPicker');picker.innerHTML='';
+  const catTabsDiv=document.createElement('div');catTabsDiv.className='emoji-cat-tabs';catTabsDiv.innerHTML=catTabs;picker.appendChild(catTabsDiv);picker.appendChild(searchRow);
+  const gridDiv=document.createElement('div');gridDiv.className='emoji-grid';gridDiv.innerHTML=grid||'<div style="padding:12px;font-size:.8rem;color:var(--gray-400);text-align:center;grid-column:1/-1;">No results</div>';picker.appendChild(gridDiv);
 }
 function setEmojiCat(idx){emojiCatIdx=idx;emojiSearchVal='';renderEmojiPicker();}
 function insertEmoji(emoji){
